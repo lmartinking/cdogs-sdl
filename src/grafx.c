@@ -216,10 +216,10 @@ void ShutDownVideo(void)
 }
 
 typedef struct _Pic {
-	short int w;
-	short int h;
-	char *data;
-} Pic;
+	uint16_t w;
+	uint16_t h;
+	unsigned char *data;
+} Pic __attribute__((__packed__));
 
 int ReadPics(const char *filename, void **pics, int maxPics,
 	     color * palette)
@@ -237,15 +237,17 @@ int ReadPics(const char *filename, void **pics, int maxPics,
 			fseek(f, sizeof(TPalette), SEEK_CUR);
 			
 		while (!eof && i < maxPics) {
-			fread(&size, sizeof(size), 1, f);
-			swap16(&size);
+			f_read16(f, &size, sizeof(size));
 			if (size) {
-				Pic *p = sys_mem_alloc(size);
+				debug(D_MAX, "allocating pic of size: %d\n", size);	
+				unsigned char *p = sys_mem_alloc(size);
 				
-				f_read16(f, &p->w, 2);
-				f_read16(f, &p->h, 2);
+				f_read16(f, &p[0], 2);
+				f_read16(f, &p[2], 2);
+				f_read(f, &p[4], size - 4);
 
-				f_read(f, &p->data, size - 4);
+				Pic *pic = (Pic *)p;
+				debug(D_MAX, "pic is: %hu x %hu\n", pic->w, pic->h);	
 
 				pics[i] = p;
 
@@ -274,14 +276,17 @@ int AppendPics(const char *filename, void **pics, int startIndex,
 		fseek(f, sizeof(TPalette), SEEK_CUR);
 			
 		while (!eof && i < maxPics) {
-			fread(&size, sizeof(size), 1, f);
-			swap16(&size);
+			f_read16(f, &size, sizeof(size));
 			if (size) {
-				Pic *p = sys_mem_alloc(size);
+				debug(D_MAX, "allocating pic of size: %d\n", size);	
+				unsigned char *p = sys_mem_alloc(size);
 
-				f_read16(f, &p->w, 2);
-				f_read16(f, &p->h, 2);
-				f_read(f, &p->data, size - 4);
+				f_read16(f, &p[0], 2);
+				f_read16(f, &p[2], 2);
+				f_read(f, &p[4], size - 4);
+
+				Pic *pic = (Pic *)p;
+				debug(D_MAX, "pic is: %hu x %hu\n", pic->w, pic->h);	
 
 				pics[i] = p;
 
